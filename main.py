@@ -2,6 +2,7 @@ from flask import Flask, request, jsonify
 from flask_pymongo import PyMongo
 from bson import ObjectId
 from flask_mail import Mail, Message
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -15,7 +16,7 @@ banco = PyMongo(app)
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = 'thepadteam@gmail.com'
-app.config['MAIL_PASSWORD'] = 'xxx'
+app.config['MAIL_PASSWORD'] = 'xxxxxx'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
@@ -110,6 +111,7 @@ def users_list():
         output = []
         for user in users.find():
             output.append({
+                '_id':str(user['_id']),
                 'name':user['name'],
                 'email':user['email']
             })
@@ -174,18 +176,6 @@ def user_login(data):
 
 
 
-#ROTA PARA CRIAR GRUPOS
-@app.route('/groups/add/<data>', methods=['GET'])
-def groups_add(data):
-    try:
-        groups = banco.db.groups
-        name, appraiser = data.split('&')
-        groups.insert_one({'name':name, 'appraiser':appraiser})
-        return jsonify({'result':'success'})
-    except:
-        return jsonify({'result':'error'})
-
-
 #ROTA PARA LISTAR GRUPOS
 @app.route('/groups/list', methods=['GET'])
 def groups_list():
@@ -201,6 +191,31 @@ def groups_list():
         return jsonify({'result':'error'})
 
 
+#ROTA PARA CRIAR GRUPOS
+@app.route('/groups/add/<data>', methods=['GET'])
+def groups_add(data):
+    try:
+        groups = banco.db.groups
+        name, appraiser = data.split('&')
+        groups.insert_one({'name':name, 'appraiser':appraiser})
+        return jsonify({'result':'success'})
+    except:
+        return jsonify({'result':'error'})
+
+
+#ROTA PARA REMOVER GRUPOS
+@app.route('/groups/del/<id>', methods=['GET'])
+def groups_dell(id):
+    try:
+        groups = banco.db.groups
+        groups.remove({'_id':ObjectId(id)})
+        return jsonify({'result':'success'})
+    except:
+        return jsonify({'result':'error'})
+
+
+
+
 #ROTA PARA LISTAR MATRICULAS
 @app.route('/groups/enrollments/list/<group>', methods=['GET'])
 def groups_enrollments(group):
@@ -209,7 +224,7 @@ def groups_enrollments(group):
     output = []
     for enrollment in enrollments.find({'group':group}):
         user = users.find_one( {'_id':ObjectId(enrollment['user'])} )
-        output.append( {'user_id':enrollment['user'], 'user_name':user['name']} )
+        output.append( {'_id':str(enrollment['_id']), 'user_id':enrollment['user'], 'user_name':user['name']} )
     return jsonify({'result':output})
 
 
@@ -227,14 +242,58 @@ def groups_apply(data):
         return jsonify({'result':'success'})
 
 
+#ROTA PARA REMOVER MATRICULA
+@app.route('/groups/enrollments/del/<id>', methods=['GET'])
+def enrollments_del(id):
+    enrollments = banco.db.enrollments
+    try:
+        enrollments.remove({'_id':ObjectId(id)})
+        return jsonify({'result':'success'})
+    except:
+        return jsonify({'result':'error'})
+
+
 
 
 #LISTA TODAS AS PROPOSTAS DO GRUPO
-
-
+@app.route('/proposals/list', methods=['GET'])
+def proposals_list():
+    try:
+        proposals = banco.db.proposals
+        output = []
+        for proposal in proposals.find():
+            output.append({
+                '_id': str(proposal['_id']),
+                'group': proposal['group'],
+                'format':proposal['format'],
+                'deadline':proposal['deadline'],
+                'name':proposal['name'],
+                'description':proposal['description'],
+                'creation_data':proposal['creation_data']
+            })
+        return jsonify({'result':output})
+    except:
+        return jsonify({'result':'error'})
 
 
 #ADICIONA UMA NOVA PROPOSTA
+@app.route('/proposals/add/<data>', methods=['GET'])
+def proposals_add(data):
+    try:
+        proposals = banco.db.proposals
+        group, format, deadline, name, description = data.split('&')
+        actual_date = datetime.now().strftime("%Y-%m-%d")
+        proposals.insert({
+            'group':group,
+            'format':format,
+            'deadline':deadline,
+            'name':name,
+            'description':description,
+            'creation_data':actual_date
+            })
+        return jsonify({'result':'success'})
+    except:
+        return jsonify({'result':'error'})
 
 
 
