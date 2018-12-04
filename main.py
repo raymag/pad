@@ -16,7 +16,7 @@ banco = PyMongo(app)
 app.config['MAIL_SERVER']='smtp.gmail.com'
 app.config['MAIL_PORT'] = 465
 app.config['MAIL_USERNAME'] = 'thepadteam@gmail.com'
-app.config['MAIL_PASSWORD'] = 'xxxxxx'
+app.config['MAIL_PASSWORD'] = 'xxxxx'
 app.config['MAIL_USE_TLS'] = False
 app.config['MAIL_USE_SSL'] = True
 
@@ -296,13 +296,44 @@ def proposals_add(data):
         return jsonify({'result':'error'})
 
 
-
-
 #REMOVE UMA PROPOSTA
+@app.route('/proposals/del/<id>', methods=['GET'])
+def proposals_del(id):
+    try:
+        proposals = banco.db.proposals
+        proposals.remove({'_id':ObjectId(id)})
+        return jsonify({'result':'success'})
+    except:
+        return jsonify({'result':'error'})
 
+
+
+
+#RESPONDE UMA PROPOSTA
+@app.route('/proposals/reply/<data>', methods=['GET'])
+def proposals_reply(data):
+    try:
+        replies = banco.db.replies
+        proposal_id, user_id, path = data.split('&')
+        query = replies.find_one({
+            'proposal':proposal_id,
+            'user':user_id
+            })
+        try:
+            q = dict(query)['user']
+            return jsonify({'result':'error'})
+        except:
+            replies.insert({
+                'proposal':proposal_id,
+                'user':user_id,
+                'file_path': path
+            })
+            return jsonify({'result':'success'})
+    except:
+        return jsonify({'result':'error'})
 
 
 
 #CONFIGURAÇÕES BÁSICAS
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(host='192.168.31.28', debug=True)
